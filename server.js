@@ -11,6 +11,8 @@ let url = process.env.FRONT_URL?process.env.FRONT_URL:'http://localhost:3000'
 app.use(cors({origin: url}))
 app.use(bodyParser.json());
 require('./routers/authController')(app)
+require('./routers/planner')(app)
+require('./routers/user')(app)
 
 
 

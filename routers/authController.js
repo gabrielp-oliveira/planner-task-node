@@ -88,7 +88,7 @@ router.post('/forgot', async (req, resp) => {
             return resp.send({error: 'email invalid'})
         }else{
             // mandar o email por aqui e depois retorna o ok
-            return resp.send({ok: 'ok'})
+            return resp.send({ok: 'ok1'})
 
         }
 
@@ -108,7 +108,8 @@ router.get('/',authenticateToken, async (req, resp) => {
         }
 
     } catch (error) {
-        return resp.send({ error: 'error' })
+        console.log(error)
+        return resp.send({ error: error })
     }
 })
 

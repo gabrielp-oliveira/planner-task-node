@@ -1,32 +1,26 @@
 const mongoose = require('../database/index')
 const bcrypt = require('bcryptjs')
 
-const userSchema = new mongoose.Schema({
+const plannerSchema = new mongoose.Schema({
     name:{
         type: String,
         require: true
     },
-    email:{
+    desciption:{
         type: String,
-        unique: true,
-        required: true,
         lowercase: true
     },
-    password: {
-        type: String,
-        required: true,
-        select: false
-    },
+
     CreatedAt: {
         type: Date,
         default: Date.now
     },
-    planners:[{
+    users:[{
         name:{            
             type: String,
             require: true
         },
-        plannerId:{
+        email:{
             type: String,
             require: true
         },
@@ -40,17 +34,22 @@ const userSchema = new mongoose.Schema({
             type: String,
             require: true
         },
-        stage:{
-            type: String
+        status:{
+            type: String,
+            required: true,
+        }
+    }],
+    stages:[{
+        StageName:{
+            type: String,
+            require: true
+        },
+        StageDesc: {
+            type: String,
         }
     }]
 })
 
-userSchema.pre('save', async function(next) {
-    const hash = await bcrypt.hash(this.password, 10)
-    this.password = hash
-    next()
-})
 
-const user = mongoose.model('user', userSchema)
-module.exports = user
+const planner = mongoose.model('planner', plannerSchema)
+module.exports = planner
