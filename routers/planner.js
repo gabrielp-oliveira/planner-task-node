@@ -7,12 +7,12 @@ const Planner = require('../models/planner')
 const { authenticateToken } = require('../middlewares/authenticateToken')
 const { authenticatePlanner } = require('../middlewares/authenticatePlanner')
 
-const { startStage, addParticipantsStage, newStages } = require('../teste')
+// const { startStage, addParticipantsStage, newStages } = require('../teste')
 
 router.post('/new', authenticateToken, async (req, resp) => {
     try {
-        // const { startStage, addParticipantsStage, newStages } = req.body
-        const { id } = req.body.params
+        const { startStage, addParticipantsStage, newStages } = req.body.params
+        const  id = req.query.id
 
         const user = await User.findOne({ _id: id })
         addParticipantsStage.push({ email: user.email, acess: 'total' })
@@ -77,7 +77,13 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
     try {
         const { plannerId } = req.body.params
         const planner = await Planner.findOne({_id: plannerId})
-        return res.send(planner )
+
+        const currentUser = await User.findOne({_id: req.query.id})
+        const acess =  planner.users.find((element) => {
+            return element.email == currentUser.email
+        })
+
+        return res.send({planner, acess: acess.acess })
     } catch (error) {
         res.send(error)
     }
