@@ -29,16 +29,6 @@ const plannerSchema = new mongoose.Schema({
             required: true,
         }
     }],
-    tasks:[{
-        title:{
-            type: String,
-            require: true
-        },
-        status:{
-            type: String,
-            required: true,
-        }
-    }],
     stages:[{
         StageName:{
             type: String,
@@ -46,6 +36,19 @@ const plannerSchema = new mongoose.Schema({
         },
         StageDesc: {
             type: String,
+        },
+        tasks:[{}]
+
+    }],
+
+    tasks:[{
+        StageId:{
+            type: String,
+            require: true
+        },
+        TaskId:{
+            type: String,
+            require: true
         }
     }]
 })

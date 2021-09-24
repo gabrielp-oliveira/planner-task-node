@@ -26,7 +26,6 @@ router.post('/register',  async (req, res) => {
             } else {
                 
             const userInfo = await User.create(req.body)
-            console.log(userInfo)
 
             userInfo.password = undefined
             const token = jwt.sign({ id: userInfo._id }, process.env.TOKEN_HASH, { expiresIn: 44000 })
@@ -49,7 +48,6 @@ router.post('/register',  async (req, res) => {
 router.post('/login', async (req, res) => {
 try {
     const { email, password } = req.body
-    console.log(req.body)
     // if (!email && !password) return res.send({ error: 'Please, fill the fields below.' })
     // if (!password) return res.send({ error: 'Password field is empty' })
     // if (!email) return res.send({ error: 'Email field is empty' })
