@@ -80,12 +80,11 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
         const planner = await Planner.findOne({ _id: plannerId })
 
         const currentUser = await User.findOne({ _id: req.query.id })
-        const acess = planner.users.find((element) => {
-            return element.email == currentUser.email
-        })
+        // const acess = planner.users.find((element) => {
+        //     return element.email == currentUser.email
+        // })
+        // console.log(planner.tasks)
 
-
-        
         planner.stages.forEach( async (stag ) => {
             const taskList = await Task.find({StageId: stag._id})
             if(taskList.length > 0){
@@ -94,7 +93,8 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
         });
 
         setTimeout(() => {      
-            return res.send({ planner, acess: acess.acess })
+            // return res.send({ planner, acess: acess.acess })
+            return res.send({ planner })
         }, 100);
     } catch (error) {
         res.send(error)
@@ -112,24 +112,12 @@ router.delete('/delColumn', authenticateToken, async (req, res) => {
                 {
                     $pull: { stages: { _id: Columnid } }
                 })
-            console.log('foi')
             return res.send('removido')
         } else {
             console.log('ainda a tratar')
             return res.send('ainda a tratar')
         }
 
-    } catch (error) {
-        res.send(error)
-    }
-});
-
-router.get('/task', async (req, res) => {
-    try {
-
-        const tasks = await Task.find();
-
-        return res.send(tasks)
     } catch (error) {
         res.send(error)
     }
@@ -156,52 +144,6 @@ router.post('/newColumn', authenticateToken, async (req, res) => {
         return res.send(error)
     }
 });
-
-router.post('/newTask', authenticateToken, async (req, res) => {
-    try {
-        const { Columnid, plannerId, accountable, desciption, title } = req.body.params
-        
-        const task = await Task.create({
-            title: title,
-            description: desciption,
-            accountable: accountable,
-            PlanenrId: plannerId,
-            StageId: Columnid
-        })
-
-        console.log(task)
-
-        await User.findOneAndUpdate({_id: req.query.id},{
-            $push: {
-                tasks: {
-                    TaskId: task._id
-                }
-            }
-        })
-
-        await Planner.findOneAndUpdate({ _id: plannerId },
-            {
-                $push: {
-                    tasks: {
-                        StageId: Columnid,
-                        TaskId: task._id
-                    }
-                }
-            })
-
-        
-
-
-
-
-        return res.send('ok')
-
-    } catch (error) {
-        console.log(error)
-        return res.send(error)
-    }
-});
-
 
 
 module.exports = app => app.use('/planner', router)

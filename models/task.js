@@ -15,9 +15,9 @@ const TaskSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    accountable: {
+    accountable: [{
         type: String,
-    },
+    }],
     StageId:{
         type: String,
         require: true
