@@ -78,23 +78,27 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
     try {
         const { plannerId } = req.body.params
         const planner = await Planner.findOne({ _id: plannerId })
+        const delList = []
+        planner.stages.forEach(async (stag) => {
+            const taskList = await Task.find({ StageId: stag._id })
 
-        const currentUser = await User.findOne({ _id: req.query.id })
-        // const acess = planner.users.find((element) => {
-        //     return element.email == currentUser.email
-        // })
-        // console.log(planner.tasks)
-
-        planner.stages.forEach( async (stag ) => {
-            const taskList = await Task.find({StageId: stag._id})
-            if(taskList.length > 0){
+            taskList.forEach((tsk, index) => {
+                if (tsk.deleted == true) {
+                    delList.push({
+                        title: tsk.title,
+                        taskId: tsk._id,
+                        deletedAt: tsk?.deletedAt
+                    })
+                    taskList.splice(index, 1);
+                }
+            })
+            if (taskList.length > 0) {
                 stag.tasks = taskList
             }
         });
 
-        setTimeout(() => {      
-            // return res.send({ planner, acess: acess.acess })
-            return res.send({ planner })
+        setTimeout(() => {
+            return res.send({ planner, delList })
         }, 100);
     } catch (error) {
         res.send(error)
@@ -122,22 +126,112 @@ router.delete('/delColumn', authenticateToken, async (req, res) => {
         res.send(error)
     }
 });
+router.delete('/removeUser', authenticateToken, async (req, res) => {
+    try {
+        
+        const { plannerId } = req.query
+        const currentId = req.query.userId
+        const io = req.app.locals.io
+        
+        const email = req.query.user
+        const planner = await Planner.findOne({ _id: plannerId })
+        const findUser = planner.users.find((user) => {
+            return user.email == email
+        })
+        if (!findUser) {
+            throw { error: 'this user is not cadastred in this planner.' }
+        }
+        const currentUser = await User.findOne({ _id: currentId})
+        const userAcess = planner.users.find((element) => {
+            return element.email == currentUser.email
+        })
+        if (userAcess.acess !== 'total') {
+            throw { error: "You seems don't have permission to remove a user from this planner." }
+        }
+        const contact = await User.findOne({email})
+        if (contact.acess == 'total') {
+            throw { error: "This user has full access to the planner, it will only be removed if he leaves by his own will." }
+        }
 
-router.post('/newColumn', authenticateToken, async (req, res) => {
+        const newUser = await User.findOne({ email: email })
+        if (!newUser) {
+            throw { error: "we didn't find this record in our database." }
+        }
+
+        await User.findOneAndUpdate({ email: email }, {
+            $pull: {
+                planners: {
+                    plannerId: planner._id,
+                }
+            }
+        })
+
+        await Planner.findOneAndUpdate({ _id: plannerId }, {
+            $pull: {
+                users: {
+                    email: email,
+                }
+            }
+        })
+
+        const currentPlanner = await Planner.findOne({ _id: plannerId })
+
+        io.to(plannerId).emit('currentUsers', currentPlanner.users)
+        return res.send('ok')
+
+    } catch (error) {
+        return res.send(error)
+    }
+});
+
+router.post('/newUser', authenticateToken, async (req, res) => {
     try {
         const { plannerId, name, desciption } = req.body.params
+        const io = req.app.locals.io
         const { id } = req.query
-        console.log(req.body)
-        await Planner.findOneAndUpdate({ _id: plannerId },
-            {
-                $push: {
-                    stages: {
-                        StageName: name,
-                        StageDesc: desciption
-                    }
+        const email = req.body.params.user.email
+        const planner = await Planner.findOne({ _id: plannerId })
+        const findUser = planner.users.find((user) => {
+            return user.email == req.body.params.user.email
+        })
+        if (findUser) {
+            throw { error: 'this user is already cadastred in the planner.' }
+        }
+        const currentUser = await User.findOne({ _id: req.body.params.userId })
+        const acess = planner.users.find((element) => {
+            return element.email == currentUser.email
+        })
+        if (acess == undefined || acess.acess !== 'total') {
+            console.log('acess')
+            throw { error: "You seems don't have permission to add a new user in this planner." }
+        }
+        const newUser = await User.findOne({ email: email })
+        if (!newUser) {
+            throw { error: "we didn't find this record in our database." }
+        }
+        
+        await User.findOneAndUpdate({ email: email }, {
+            $push: {
+                planners: {
+                    name: planner.name,
+                    plannerId: planner._id,
+                    acess: req.body.params.user.permission,
                 }
-            })
+            }
+        })
 
+        await Planner.findOneAndUpdate({ _id: plannerId }, {
+            $push: {
+                users: {
+                    name: newUser.name,
+                    email: newUser.email,
+                    acess: req.body.params.user.permission,
+                }
+            }
+        })
+
+        const currentPlanner = await Planner.findOne({ _id: plannerId })
+        io.to(plannerId).emit('currentUsers', currentPlanner.users)
         return res.send('ok')
 
     } catch (error) {

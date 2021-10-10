@@ -83,7 +83,8 @@ router.post('/forgot', async (req, resp) => {
         const { email } = req.body
         const userInfo = await User.findOne({ email }).select('+password')
         if (userInfo == null) {
-            return resp.send({error: 'email invalid'})
+            console.log(userInfo)
+            throw {error: 'email invalid'}
         }else{
             // mandar o email por aqui e depois retorna o ok
             return resp.send({ok: 'ok1'})

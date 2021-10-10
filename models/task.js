@@ -22,9 +22,25 @@ const TaskSchema = new mongoose.Schema({
         type: String,
         require: true
     },
-    PlanenrId:{
+    plannerId:{
         type: String,
         require: true
+    },
+    deleted: {
+        type: Boolean,
+        require: false
+    },
+    deletedAt:{
+        type: Date,
+        require: false
+    },
+    priority:{
+        type: String,
+        require: false
+    },
+    status:{
+        type: String,
+        require: false
     }
 })
 
