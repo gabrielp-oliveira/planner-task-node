@@ -21,6 +21,26 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    forgetCode: {
+        type: String,
+        required: false,
+    },
+    forgetAt: {
+        type: Date,
+        required: false,
+    },
+    ValidUser:{
+        type: Boolean,
+        required: true,
+    },
+    ValidUserCode: {
+        type: String,
+        required: false,
+    },
+    ValidUserCodeAt: {
+        type: Date,
+        required: false,
+    },
     planners:[{
         name:{            
             type: String,

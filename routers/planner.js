@@ -7,6 +7,7 @@ const Planner = require('../models/planner')
 const Task = require('../models/task')
 const { authenticateToken } = require('../middlewares/authenticateToken')
 const { authenticatePlanner } = require('../middlewares/authenticatePlanner')
+const getDateRange = require('../utils/getDateRange')
 
 // const { startStage, addParticipantsStage, newStages } = require('../teste')
 
@@ -82,14 +83,17 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
         planner.stages.forEach(async (stag) => {
             const taskList = await Task.find({ StageId: stag._id })
 
-            taskList.forEach((tsk, index) => {
+            taskList.forEach(async (tsk, index) => {
                 if (tsk.deleted == true) {
-                    delList.push({
-                        title: tsk.title,
-                        taskId: tsk._id,
-                        deletedAt: tsk?.deletedAt
-                    })
-                    taskList.splice(index, 1);
+                    if (getDateRange(tsk.deletedAt, Date.now()) >= 10080) {
+                        await Task.findOneAndRemove({ StageId: tsk._id })
+                        await Planner.findOneAndUpdate({ _id: plannerId }, {
+                            $pull: { tasks: { TaskId: tsk._id } }
+                        })
+                    } else {
+                        delList.push(tsk)
+                        taskList.splice(index, 1);
+                    }
                 }
             })
             if (taskList.length > 0) {
@@ -128,11 +132,11 @@ router.delete('/delColumn', authenticateToken, async (req, res) => {
 });
 router.delete('/removeUser', authenticateToken, async (req, res) => {
     try {
-        
+
         const { plannerId } = req.query
         const currentId = req.query.userId
         const io = req.app.locals.io
-        
+
         const email = req.query.user
         const planner = await Planner.findOne({ _id: plannerId })
         const findUser = planner.users.find((user) => {
@@ -141,14 +145,14 @@ router.delete('/removeUser', authenticateToken, async (req, res) => {
         if (!findUser) {
             throw { error: 'this user is not cadastred in this planner.' }
         }
-        const currentUser = await User.findOne({ _id: currentId})
+        const currentUser = await User.findOne({ _id: currentId })
         const userAcess = planner.users.find((element) => {
             return element.email == currentUser.email
         })
         if (userAcess.acess !== 'total') {
             throw { error: "You seems don't have permission to remove a user from this planner." }
         }
-        const contact = await User.findOne({email})
+        const contact = await User.findOne({ email })
         if (contact.acess == 'total') {
             throw { error: "This user has full access to the planner, it will only be removed if he leaves by his own will." }
         }
@@ -209,7 +213,7 @@ router.post('/newUser', authenticateToken, async (req, res) => {
         if (!newUser) {
             throw { error: "we didn't find this record in our database." }
         }
-        
+
         await User.findOneAndUpdate({ email: email }, {
             $push: {
                 planners: {
