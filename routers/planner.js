@@ -79,31 +79,45 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
     try {
         const { plannerId } = req.body.params
         const planner = await Planner.findOne({ _id: plannerId })
-        const delList = []
-        planner.stages.forEach(async (stag) => {
-            const taskList = await Task.find({ StageId: stag._id })
+        const delList = await Task.find({plannerId: plannerId, deleted: true})
 
-            taskList.forEach(async (tsk, index) => {
-                if (tsk.deleted == true) {
-                    if (getDateRange(tsk.deletedAt, Date.now()) >= 10080) {
-                        await Task.findOneAndRemove({ StageId: tsk._id })
-                        await Planner.findOneAndUpdate({ _id: plannerId }, {
-                            $pull: { tasks: { TaskId: tsk._id } }
-                        })
-                    } else {
-                        delList.push(tsk)
-                        taskList.splice(index, 1);
+        for(let i = 0; i <= planner.stages.length; i++){
+            if(planner.stages[i] == undefined){
+                console.log('terminou')
+                return res.send({ planner, delList  })
+            }else{
+
+                
+                const taskToRemove = await Task.find({ StageId: planner.stages[i]._id, deleted: true })
+                taskToRemove.forEach(async (tsk, index) => {
+                    if (tsk.deleted == true) {
+                        if (getDateRange(tsk.deletedAt, Date.now()) >= 10080) {
+                            await Task.findOneAndRemove({ StageId: tsk._id })
+                            await Planner.findOneAndUpdate({ _id: plannerId }, {
+                                $pull: { tasks: { TaskId: tsk._id } }
+                            })
+                        } 
                     }
-                }
-            })
-            if (taskList.length > 0) {
-                stag.tasks = taskList
+                })
+                
+                
+                const tasks = await Task.find({ StageId: planner.stages[i]._id})
+                tasks.forEach(async (el) => {
+                    if(el.deleted == undefined){
+                        console.log('undefined')
+                        await Task.findOneAndUpdate({_id: el._id},{
+                            $set: { deleted: false }
+                        })
+                    }
+                })
+                planner.stages[i].tasks = tasks
+                
+                
             }
-        });
+        }
 
-        setTimeout(() => {
-            return res.send({ planner, delList })
-        }, 100);
+        
+
     } catch (error) {
         res.send(error)
     }

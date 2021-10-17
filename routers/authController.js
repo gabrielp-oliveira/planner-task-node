@@ -45,8 +45,8 @@ router.post('/register', async (req, res) => {
             let userCode = await User.findOne({email})
 
 
-            setTimeout(() => {
-                sendEmail(title,'Planner Register', message, userCode.ValidUserCode, process.env.URL + 'forgotpassword', email, SecondMessage, res);
+            setTimeout(async () => {
+                await sendEmail(title,'Planner Register', message, userCode.ValidUserCode, process.env.URL + 'forgotpassword', email, SecondMessage, res);
             }, 1000);
             return res.send({ error: 'Email alread registred, another code was sended to your email. This code its valid for 20 min.' })
         }else{

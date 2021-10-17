@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    socketId:{
+        type: String,
+        required: false,
+    },
     forgetCode: {
         type: String,
         required: false,
