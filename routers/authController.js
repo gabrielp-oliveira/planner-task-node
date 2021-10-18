@@ -16,14 +16,14 @@ router.post('/register', async (req, res) => {
 
     try {
         const { email, name, password } = req.body
-        // if (!email && !name && !password) return res.send({ error: 'Please, fill the fields below.' })
-        // if (!name) return res.send({ error: 'Name field is empty' })
-        // else if (name.length <= 3) return res.send({ error: 'Name too short' })
-        // if (!email) return res.send({ error: 'Email field is empty' })
-        // if (!password) return res.send({ error: 'Password field is empty' })
-        // else if (password.length <= 3) return res.send({ error: 'Password shorter than 3 caracteres.' })
-        // else if (password.length >= 10) return res.send({ error: 'Password bigger than 10 caracteres.' })
-        // if (!validateEmail(email)) return res.send({ error: 'Error, use a valid email' })
+        if (!email && !name && !password) throw { error: 'Please, fill the fields below.' }
+        if (!name) throw { error: 'Name field is empty' }
+        else if (name.length <= 3) throw { error: 'Name too short' }
+        if (!email) throw { error: 'Email field is empty' }
+        if (!password) throw { error: 'Password field is empty' }
+        else if (password.length <= 2) throw { error: 'Password shorter than 3 caracteres.' }
+        else if (password.length >= 9) throw { error: 'Password bigger than 8 caracteres.' }
+        if (!validateEmail(email)) throw { error: 'Error, use a valid email' }
         const title = 'Verify account'
         const message = 'if you have not requested to create a account in the planner, please ignore this email'
         const SecondMessage = 'Acess the planner and use your email and the token to verify your account. this token will expire in 20 min.'
@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
             let currentUser = await User.findOne({email})
 
             if(currentUser.ValidUser == true){
-                return res.send({ error: 'Email alread registred.' })
+                throw { error: 'Email alread registred.' }
             }
 
             await User.findOneAndUpdate({ email }, {
@@ -48,7 +48,7 @@ router.post('/register', async (req, res) => {
             setTimeout(async () => {
                 await sendEmail(title,'Planner Register', message, userCode.ValidUserCode, process.env.URL + 'forgotpassword', email, SecondMessage, res);
             }, 1000);
-            return res.send({ error: 'Email alread registred, another code was sended to your email. This code its valid for 20 min.' })
+            throw { error: 'Email alread registred, another code was sended to your email. This code its valid for 20 min.' }
         }else{
             await User.create({
                 email, password, name,
@@ -61,7 +61,7 @@ router.post('/register', async (req, res) => {
             const userInfo = await User.findOne({ email })
             userInfo.password = undefined
             
-            sendEmail(title,'Planner Register', message, code, 'http://localhost:3000/forgotpassword', email, SecondMessage, res);
+            sendEmail(title,'Planner Register', message, code, process.env.URL + 'forgotpassword', email, SecondMessage, res);
         
             return res.send({ ok: 'ok' })
                 
@@ -112,9 +112,9 @@ router.post('/confirmCode', async (req, resp) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body
-        // if (!email && !password) return res.send({ error: 'Please, fill the fields below.' })
-        // if (!password) return res.send({ error: 'Password field is empty' })
-        // if (!email) return res.send({ error: 'Email field is empty' })
+        if (!email && !password) throw { error: 'Please, fill the fields below.' }
+        if (!password) throw { error: 'Password field is empty' }
+        if (!email) throw { error: 'Email field is empty' }
 
 
         const userInfo = await User.findOne({ email }).select('+password')
@@ -130,7 +130,6 @@ router.post('/login', async (req, res) => {
                 const token = jwt.sign({ _id: userInfo._id }, process.env.TOKEN_HASH, { expiresIn: 44000 })
 
                 return res.send({
-                    userValid: true,
                     token: token,
                     UserId: userInfo._id
                 })
@@ -165,8 +164,8 @@ router.post('/forgot', async (req, resp) => {
 
         const currentUser = await User.findOne({ email: email })
 
-
-        sendEmail(title,'Planner forgot Password', message, currentUser.forgetCode, 'http://localhost:3000/forgotpassword', email, SecondMessage, resp);
+        let url = process.env.URL?process.env.URL:'http://localhost:3000'
+        sendEmail(title,'Planner forgot Password', message, currentUser.forgetCode, url + '/forgotpassword', email, SecondMessage, resp);
 
     } catch (error) {
         return resp.send({ error: error })
@@ -190,22 +189,38 @@ router.post('/verifyEmail', async (req, resp) => {
 
         return resp.send({ ok: userInfo })
     } catch (error) {
-        console.log(error)
+        return resp.send(error)
+    }
+})
+router.post('/confirmToken', async (req, resp) => {
+
+    try {
+        const { email, token } = req.body
+        const userInfo = await User.findOne({ email })
+        
+        if(userInfo.forgetCode.trim().toLowerCase() != token.trim().toLowerCase()){
+            throw { error: 'Token invalid' }
+        }
+        if (userInfo == null) {
+            throw { error: 'email invalid.' }
+        }
+
+        return resp.send({ ok: 'ok' })
+    } catch (error) {
         return resp.send(error)
     }
 })
 router.post('/UpdatePassword', async (req, resp) => {
 
     try {
-        const { email, password } = req.body
-        // if (!password) throw { error: 'Please, fill the fields below.' }
-        // if (!password.first) throw { error: 'Please, fill the fields below.' }
-        // if (!password.second) throw { error: 'Please, fill the fields below.' }
-        // else if (password.length <= 3) throw { error: 'Password shorter than 3 caracteres.' }
-        // else if (password.length >= 10) throw { error: 'Password bigger than 10 caracteres.' }
-
+        const { email, password, token } = req.body
+        if (!password.first || !password.second ) throw { error: 'Please, fill the fields below.' }
+        if (!password.first) throw { error: 'Please, fill the fields below.' }
+        if (!password.second) throw { error: 'Please, fill the fields below.' }
+        if (password.first.length <= 2) throw { error: 'Password shorter than 3 caracteres.' }
+        if (password.first.length >= 9) throw { error: 'Password bigger than 8 caracteres.' }
         if (password.first !== password.second) {
-            throw { error: 'wrong password.' }
+            throw { error: 'passwords are not compatible.' }
         }
         const userInfo = await User.findOne({ email }).select('+password')
         if (getDateRange(userInfo.forgetAt, Date.now()) >= 20) {
@@ -243,9 +258,9 @@ router.get('/', authenticateToken, async (req, resp) => {
         const User_ID = req.query.id
         const currentUser = await User.findOne({ _id: User_ID })
         if (currentUser) {
-            return resp.send({ userInfo: currentUser, userValid: true })
+            return resp.send( currentUser )
         } else {
-            return resp.status(400).send({ error: 'error' })
+           throw { error: 'error' }
         }
 
     } catch (error) {

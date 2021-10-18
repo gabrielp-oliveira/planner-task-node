@@ -12,11 +12,10 @@ async function authenticatePlanner(req, res, next) {
         if (valid != undefined) {
             next()
         } else {
-            return res.send({ error: 'error, you dont have acess to this planner' })
+            throw { error: 'error, you dont have acess to this planner' }
         }
     } catch (error) {
-        console.log(error)
-        return res.send({ error: 'something wrong with the planner id or your acess' })
+        throw { error: 'something wrong with the planner id or your acess' }
     }
 
 

@@ -9,7 +9,6 @@ const { authenticateToken } = require('../middlewares/authenticateToken')
 const { authenticatePlanner } = require('../middlewares/authenticatePlanner')
 const getDateRange = require('../utils/getDateRange')
 
-// const { startStage, addParticipantsStage, newStages } = require('../teste')
 
 router.post('/new', authenticateToken, async (req, resp) => {
     try {
@@ -52,29 +51,11 @@ router.post('/new', authenticateToken, async (req, resp) => {
         })
         return resp.send({ ok: 'ok' })
     } catch (error) {
-        console.log(error)
-        return resp.send({ error: 'error' })
+        return resp.send({ error: error })
     }
 })
 
-router.get('/', (req, res) => {
-    Planner.find()
-        .exec((err, users) => {
-            if (err) {
-            } else {
-                res.send(users);
-            }
-        });
-});
-router.get('/us', (req, res) => {
-    User.find()
-        .exec((err, users) => {
-            if (err) {
-            } else {
-                res.send(users);
-            }
-        });
-});
+
 router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) => {
     try {
         const { plannerId } = req.body.params
@@ -83,10 +64,8 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
 
         for(let i = 0; i <= planner.stages.length; i++){
             if(planner.stages[i] == undefined){
-                console.log('terminou')
                 return res.send({ planner, delList  })
             }else{
-
                 
                 const taskToRemove = await Task.find({ StageId: planner.stages[i]._id, deleted: true })
                 taskToRemove.forEach(async (tsk, index) => {
@@ -101,10 +80,9 @@ router.post('/auth', authenticateToken, authenticatePlanner, async (req, res) =>
                 })
                 
                 
-                const tasks = await Task.find({ StageId: planner.stages[i]._id})
+                const tasks = await Task.find({ StageId: planner.stages[i]._id, deleted: false})
                 tasks.forEach(async (el) => {
                     if(el.deleted == undefined){
-                        console.log('undefined')
                         await Task.findOneAndUpdate({_id: el._id},{
                             $set: { deleted: false }
                         })
@@ -209,9 +187,14 @@ router.post('/newUser', authenticateToken, async (req, res) => {
         const { id } = req.query
         const email = req.body.params.user.email
         const planner = await Planner.findOne({ _id: plannerId })
+
         const findUser = planner.users.find((user) => {
             return user.email == req.body.params.user.email
         })
+        const user = await User.findOne({_id: id})
+        if(user.email == email){
+            throw { error: 'this is your Email' }
+        }
         if (findUser) {
             throw { error: 'this user is already cadastred in the planner.' }
         }
@@ -220,7 +203,6 @@ router.post('/newUser', authenticateToken, async (req, res) => {
             return element.email == currentUser.email
         })
         if (acess == undefined || acess.acess !== 'total') {
-            console.log('acess')
             throw { error: "You seems don't have permission to add a new user in this planner." }
         }
         const newUser = await User.findOne({ email: email })

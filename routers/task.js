@@ -26,13 +26,6 @@ router.post('/newTask', authenticateToken, async (req, res) => {
             deleted: false
         })
 
-        await User.findOneAndUpdate({ _id: req.query.id }, {
-            $push: {
-                tasks: {
-                    TaskId: task._id
-                }
-            }
-        })
 
         await Planner.findOneAndUpdate({ _id: plannerId },
             {
@@ -84,7 +77,6 @@ router.post('/newTask', authenticateToken, async (req, res) => {
                 const taskToRemove = await Task.find({ plannerId: plannerId, deleted: true })
 
                 io.to(plannerId).emit('restoreTask', {task: taskToRemove, graphValues})
-                console.log(graphValues)
                 return res.send('ok')
             }
 
@@ -96,7 +88,6 @@ router.post('/newTask', authenticateToken, async (req, res) => {
         }
         return res.send('ok')
     } catch (error) {
-        console.log(error)
         return res.send(error)
     }
 });
@@ -138,10 +129,10 @@ router.post('/restoreTask', authenticateToken, async (req, res) => {
             return element.email == currentUser.email
         })
         if (acess == undefined || acess.acess == 'total' || acess.acess == 'intermediate') {
-            const currentTask = await Task.findOne({ _id: taskId, deleted: true })
+            const currentTask = await Task.find({ plannerId: task.plannerId, deleted: true})
 
             planner.stages.forEach(async (stag) => {
-                const tasks = await Task.find({ StageId: stag._id, deleted: false})
+                const tasks = await Task.find({ StageId: stag._id})
                 stag.tasks = tasks
             })
             for(let i = 0; i <= planner.tasks.length +1; i++){
@@ -149,16 +140,14 @@ router.post('/restoreTask', authenticateToken, async (req, res) => {
                     io.to(task.plannerId).emit('restoreTask', {task: currentTask, graphValues, tasksRestored: planner.stages })
                 }
 
-                const ttask = await Task.findOne({_id: planner.tasks[i].TaskId})
-                if(ttask.deleted == false || ttask.deleted == undefined){
-                    graphValues[ttask.status? ttask.status : 'none'] = graphValues[ttask.status? ttask.status : 'none'] + 1
-                }
+                const ttask = await Task.findOne({_id: planner.tasks[i].TaskId, deleted: false})
+                graphValues[ttask?.status? ttask?.status : 'none'] = graphValues[ttask?.status? ttask?.status : 'none'] + 1
+                
             }
 
         } else {
             throw { error: "You seems don't have permission to restore a task." }
         }
-        console.log('?')
         return res.send({ ok: 'ok' })
 
     } catch (error) {
@@ -184,9 +173,7 @@ router.delete('/delTask', authenticateToken, async (req, res) => {
             await Task.findOneAndUpdate({ _id: taskId }, {
                 $set: { deleted: true, deletedAt: date }
             })
-            console.log('1')
         } else {
-            console.log('2')
             throw { error: "You seems don't have permission to delete a task." }
         }
         
@@ -263,7 +250,6 @@ router.delete('/confirmDelTask', authenticateToken, async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error)
         return res.send(error)
     }
 });
@@ -289,8 +275,6 @@ router.put('/update', authenticateToken, async (req, res) => {
             const taskList = await Task.find({ StageId: planner.stages[i]?._id, deleted: false})
             if(planner.stages[i] == undefined){
                 io.to(task.plannerId).emit('updateTaskInfo', {columns: planner.stages, graphValues})
-                console.log('evento atualização de task')
-
                 return res.send({ ok: 'ok' })
             }
             planner.stages[i].tasks = taskList
@@ -301,7 +285,6 @@ router.put('/update', authenticateToken, async (req, res) => {
 
         }
     } catch (error) {
-        console.log(error)
         return res.send(error)
     }
 });
@@ -339,13 +322,13 @@ router.put('/updateTaskPosition', async (req, res) => {
             $set: { tasks }
         }, (err, resolv) => {
             if (err) {
-                console.log(err)
+                throw err
+                t
             }
         })
 
         return res.send({ ok: 'ok' })
     } catch (error) {
-        console.log(error)
         res.send(error)
     }
 });
@@ -353,47 +336,27 @@ router.put('/updateTaskPosition', async (req, res) => {
 router.get('/usersTasks', authenticateToken, async (req, res) => {
     try {
         const { plannerId, userEmail } = req.query
-        const user = await User.findOne({ email: userEmail })
+        const planner = await Planner.findOne({ _id: plannerId })
+        const delList = await Task.find({plannerId: plannerId, deleted: true})
 
-        const valid = await user.planners?.find((pln) => {
-            return pln.plannerId == plannerId
-        })
-        if (valid == undefined) {
-           throw { error: 'error, you dont have acess to this planner' }
+        for(let i = 0; i <= planner.stages.length; i++){
+            if(planner.stages[i] == undefined){
+                return res.send({ planner, delList  })
+            }else{
+               
+                const tasks = await Task.find({ StageId: planner.stages[i]._id, accountable: userEmail})
+                tasks.forEach(async (el) => {
+                    if(el.deleted == undefined){
+                        await Task.findOneAndUpdate({_id: el._id},{
+                            $set: { deleted: false }
+                        })
+                    }
+                })
+                planner.stages[i].tasks = tasks
+                
+            }
         }
 
-
-        const planner = await Planner.findOne({ _id: plannerId })
-
-        const delList = []
-        planner.stages.forEach(async (stag) => {
-            const taskList = await Task.find({ StageId: stag._id })
-
-            taskList.forEach(async (tsk, index) => {
-                if (tsk.deleted == true) {
-                    if (getDateRange(tsk.deletedAt, Date.now()) >= 10080) {
-                        await Task.findOneAndRemove({ StageId: tsk._id })
-                        await Planner.findOneAndUpdate({ _id: plannerId }, {
-                            $pull: { tasks: { TaskId: tsk._id } }
-                        })
-                    } else {
-                        delList.push(tsk)
-                        taskList.splice(index, 1);
-                    }
-                }
-                    if(tsk.accountable.indexOf(userEmail) == -1){
-                        taskList.splice(index, 1)
-                    }
-                
-            })
-            if (taskList.length > 0) {
-                stag.tasks = taskList
-            }
-        });
-
-        setTimeout(() => {
-            return res.send({ planner, delList })
-        }, 1000);
     } catch (error) {
         res.send(error)
     }
