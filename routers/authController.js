@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
                 
             }
     } catch (err) {
-        return res.send({ error: err })
+        return res.send( err )
     }
 
 })

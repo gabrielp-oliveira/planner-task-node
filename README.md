@@ -34,17 +34,20 @@ This app is hosted on <strong>heroku free plan</strong>, meaning that on the ini
 <br>
 
 <h2>setting the app</h2>
-Now, three things are importants:<br>
+Now, some things are importants:<br>
 <p>if you run this app in local environment, you have to had install the <strong>mongodb and node js</strong>  to get everything in work.</p>
 <p>you can find the methodology to <strong>cloning and config the front-end repository <a target="_blank" href="https://github.com/gabrielp-oliveira/planner-task"> here</a></strong>.</p>
 
-<p>its important create a <strong>.env</strong>  file in the root application with the following variables:<p>
+<p>It was utilized the <strong>google cloud API</strong> to create the mailer service, so, you can get more info about it <a target="_blank" href="https://cloud.google.com/google/api">here</a>.</p>
 
-<strong>Email </strong> <i>---- </i>this its the email that will be used to delivery the validate code and forget code. that its no default value on this.<br>
-<strong>emailPassword </strong> <i>---- </i>its the password of the email above, that its no default value on this.<br>
+<p>its important create a <strong>.env</strong>  file in the root application with the following variables:<p>
 <strong>URL </strong> <i>---- </i>its the front-end, this url will be sended by email, when the user validate the email or change de password, this url will be used to redirect to the page, you can leave it in blank, that will be setup by default to: http://localhost:3000<br>
-<strong>TOKEN_HASH </strong> <i>---- </i>is the token that will be used to encode the user's password, you can randomly configure a sequence of characters to form that token.<br>
 <strong>MONGO_DB_ACESS </strong> <i>---- </i>its the mongo database acess, if you run this project in a local enviroment, you can leave it in blank, that will be setup by default to : mongodb://localhost/stp.<br>
+<strong>TOKEN_HASH </strong> <i>---- </i>is the token that will be used to encode the user's password, you can randomly configure a sequence of characters to form that token.<br>
+<strong>Email </strong> <i>---- </i>this its the email that will be used to delivery the validate code and forget code. that its no default value on this.<br>
+<strong>clientId </strong> <i>---- </i>you will get this value on the google api, so read the link above for more information.<br>
+<strong>refresh_Token </strong> <i>---- </i>you will get this value on the google api, so read the link above for more information.<br>
+<strong>clientSecret </strong> <i>---- </i>you will get this value on the google api, so read the link above for more information.<br><br>
 
 
 

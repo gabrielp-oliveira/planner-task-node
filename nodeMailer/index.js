@@ -1,27 +1,27 @@
 require('dotenv').config()
-
 const nodemailer = require("nodemailer");
+const config = require('./config')
+const { google } = require('googleapis')
+const Oauth2 = google.auth.OAuth2
 
-const SMTP_CONFIG = {
-  host: "smtp.gmail.com",
-  port: 587,
-  user: process.env.Email,
-  pass: process.env.emailPassword,
-};
+const OAuth2_client = new Oauth2(config.clientId, config.clientSecret)
+OAuth2_client.setCredentials({ refresh_token: config.refresh_token })
+const accessToken = OAuth2_client.getAccessToken()
+
 
 const transporter = nodemailer.createTransport({
-  host: SMTP_CONFIG.host,
-  port: SMTP_CONFIG.port,
-  secure: false,
+  service: 'gmail',
   auth: {
-    user: SMTP_CONFIG.user,
-    pass: SMTP_CONFIG.pass,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
+      type : 'OAuth2',
+      user: config.user,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      refreshToken: config.refresh_token,
+      accessToken: accessToken
+  }
 });
-async function sendEmail(Title, subject, message, code, link, to, message1, resp) {
+
+function sendEmail(Title, subject, message, code, link, to, message1, resp) {
 
   transporter.sendMail({
       text: Title,
@@ -41,7 +41,7 @@ async function sendEmail(Title, subject, message, code, link, to, message1, resp
        `,
     }, function(error, info){
       if (error) {
-        return resp.send(error)
+        return resp.send({error: error})
       } else {
         return resp.send({ok: info.response})
       }
