@@ -46,7 +46,7 @@ router.post('/register', async (req, res) => {
 
 
             setTimeout(async () => {
-                await sendEmail(title,'Planner Register', message, userCode.ValidUserCode, process.env.URL + 'forgotpassword', email, SecondMessage, res);
+                await sendEmail(title,'Planner Register', message, userCode.ValidUserCode, process.env.URL + '/#/verifyAccount', email, SecondMessage, res);
             }, 1000);
             throw { error: 'Email alread registred, another code was sended to your email. This code its valid for 20 min.' }
         }else{
@@ -61,7 +61,7 @@ router.post('/register', async (req, res) => {
             const userInfo = await User.findOne({ email })
             userInfo.password = undefined
             
-            sendEmail(title,'Planner Register', message, code, process.env.URL + 'forgotpassword', email, SecondMessage, res);
+            sendEmail(title,'Planner Register', message, code, process.env.URL + '/#/verifyAccount', email, SecondMessage, res);
         
             return res.send({ ok: 'ok' })
                 
@@ -165,7 +165,7 @@ router.post('/forgot', async (req, resp) => {
         const currentUser = await User.findOne({ email: email })
 
         let url = process.env.URL?process.env.URL:'http://localhost:3000'
-        sendEmail(title,'Planner forgot Password', message, currentUser.forgetCode, url + '/forgotpassword', email, SecondMessage, resp);
+        sendEmail(title,'Planner forgot Password', message, currentUser.forgetCode, url + '/#/forgotpassword', userInfo.email, SecondMessage, resp);
 
     } catch (error) {
         return resp.send({ error: error })

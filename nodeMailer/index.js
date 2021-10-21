@@ -1,4 +1,5 @@
 require('dotenv').config()
+const page = require('./page')
 const nodemailer = require("nodemailer");
 const config = require('./config')
 const { google } = require('googleapis')
@@ -28,17 +29,7 @@ function sendEmail(Title, subject, message, code, link, to, message1, resp) {
       subject: subject,
       from: "Planner <Gabriel P.> Resume Project.",
       to: to,
-      html: ` <html> 
-       <body>
-       <h1>${Title}</h1>
-       <p>${message}</p>
-       <p>Code: ${code}</p>
-       <hr/>
-       <p>go the the <a href="${link}" target="_blank">planner</a> </p>
-       <p>${message1}</p>
-       </body>
-       </html> 
-       `,
+      html: page(Title,  message, code, link,  message1),
     }, function(error, info){
       if (error) {
         return resp.send({error: error})
